@@ -1,0 +1,102 @@
+import pygame
+import random
+import math
+ 
+# --- INICJALIZACJA PYGAME ---
+pygame.init()
+szerokosc_okna = 800
+wysokosc_okna = 400
+screen = pygame.display.set_mode((szerokosc_okna, wysokosc_okna))
+pygame.display.set_caption("Gra z przeszkodami")
+clock = pygame.time.Clock()                                                                #zegar do kontrolowania liczby klatek na sekundę
+ 
+# Czcionki
+font_hud = pygame.font.Font(None, 40)
+font_komunikat = pygame.font.Font(None, 70)
+ 
+# --- KLASY OBIEKTÓW --- 
+class Kwadrat:
+    def __init__(self): 
+        self.bok = 40.0
+        self.x = 100.0  #pozycja pozioma gracza (stała)
+        self.y = 300.0 - self.bok  #pozycja pionowa
+        self.predkosc_y = 0.0
+        self.grawitacja = 0.6                                                              #przyspieszenie grawitacyjne - dodawane co klatkę do predkosc_y
+        self.sila_skoku = -10.0                                                            #prędkość nadawana przy skoku (ujemna bo w pygame "w górę" = mniejsze y)
+        self.licznik_skokow = 0                                                            #ile razy gracz skoczył od ostatniego lądowania (pozwala na podwójny skok)
+        self.kat_obrotu = 0.0
+        self.predkosc_obrotu = 0.0
+ 
+    def _oblicz_czas_lotu(self): 
+        #Symuluje lot gracza, żeby policzyć ile klatek zajmie powrót na podłogę
+        y = self.y                                                                         #kopia aktualnej pozycji y do symulacji
+        v = self.predkosc_y                                                                #kopia aktualnej prędkości do symulacji
+        n = 0                                                                              #licznik symulowanych klatek
+        while y + self.bok < 300.0 and n < 1000:                                           #dopóki dół kwadratu nie dotarł do podłogi (i zabezpieczenie przed pętlą)
+            v += self.grawitacja                                                           #symulowana grawitacja zwiększa prędkość
+            y += v                                                                         #symulowana pozycja zmienia się o prędkość
+            n += 1                                                                         #kolejna klatka
+        return max(n, 1)                                                                   #zwraca liczbę klatek lotu 
+    def skocz(self): 
+        if self.licznik_skokow < 2:                                            
+            self.predkosc_y = self.sila_skoku                                    
+            self.licznik_skokow += 1                                             
+            klatki_do_ladowania = self._oblicz_czas_lotu()                                 #policz ile klatek zajmie lądowanie
+            self.predkosc_obrotu = 360.0 / klatki_do_ladowania                           
+ 
+    def aktualizuj(self, wszystkie_platformy): 
+        self.predkosc_y += self.grawitacja                                         
+        self.y += self.predkosc_y                                                    
+ 
+        if self.licznik_skokow > 0:                                                   
+            self.kat_obrotu += self.predkosc_obrotu                                       #obracaj kwadrat o wyliczoną prędkość obrotu
+ 
+        # 1. Bezpieczne schody - po prostu podnoszą poziom podłogi
+        docelowa_podloga = 300.0                                                        
+        srodek_gracza = self.x + self.bok / 2.0                                           #pozioma pozycja środka gracza (do sprawdzenia na którym stopniu schodów stoi)
+ 
+        for p in wszystkie_platformy:                                                     #sprawdź każdą platformę schodków na ekranie
+            if srodek_gracza > p.x and srodek_gracza <= p.x + 30:                         #jeśli gracz jest nad 1 stopniem
+                docelowa_podloga = 270.0                                                  #podnieś podłogę na wysokość 1 stopnia
+            elif srodek_gracza > p.x + 30 and srodek_gracza <= p.x + 60:                  
+                docelowa_podloga = 240.0                                                          
+            elif srodek_gracza > p.x + 60 and srodek_gracza <= p.x + 90:                          
+                docelowa_podloga = 210.0                                                             
+ 
+        # 2. Bezpieczne lądowanie
+        if self.y + self.bok >= docelowa_podloga and self.predkosc_y >= 0:                #jeśli dół gracza dotarł do podłogi i gracz nie leci w górę
+            self.y = docelowa_podloga - self.bok                                          #ustaw gracza dokładnie na podłodze
+            self.predkosc_y = 0.0                                                         #zatrzymanie spadania
+            self.licznik_skokow = 0                                                                        
+            self.kat_obrotu = round(self.kat_obrotu / 90.0) * 90.0                        #zaokrąglij kąt obrotu do najbliższej wielokrotności 90°, by ładnie "stanął"
+ 
+    def rysuj(self, ekran): 
+        # Tworzymy "powierzchnię" kwadratu, żeby móc go obrócić
+        surf = pygame.Surface((self.bok, self.bok), pygame.SRCALPHA)                           
+        surf.fill((255, 50, 50))                                                                                
+        # Obrót (w Pygame minus kręci w prawo)
+        rotated_surf = pygame.transform.rotate(surf, -self.kat_obrotu)                   #obróć powierzchnię o aktualny kąt (minus, by kręcić zgodnie z ruchem wskazówek zegara)
+        rect = rotated_surf.get_rect(center=(self.x + self.bok / 2.0, self.y + self.bok / 2.0))     #środek obróconej figury pokrywa się ze środkiem gracza
+        ekran.blit(rotated_surf, rect)                                                              # narysuj (wklej) obróconą powierzchnię na ekranie
+ 
+    def sprawdz_kolizje(self, przeszkoda): 
+        margines_gracza = 6                                                              #zmniejszenie hitboxa gracza o 6px z każdej strony (mniej "wybaczające" starcia)
+        margines_przeszkody_bok = 12                                                     #zmniejszenie hitboxa przeszkody w bokach o 12px
+        margines_przeszkody_gora = 15                                                    #zmniejszenie hitboxa przeszkody od góry o 15px
+ 
+        gracz_lewo = self.x + margines_gracza                                            #lewa krawędź hitboxa gracza
+        gracz_prawo = self.x + self.bok - margines_gracza                                                               
+        gracz_gora = self.y + margines_gracza                                                                            
+        gracz_dol = self.y + self.bok - margines_gracza                                                                  
+ 
+        przeszkoda_lewo = przeszkoda.x + margines_przeszkody_bok                         #lewa krawędź hitboxa przeszkody
+        przeszkoda_prawo = przeszkoda.x + przeszkoda.szerokosc - margines_przeszkody_bok                                    
+        przeszkoda_gora = przeszkoda.y - przeszkoda.wysokosc + margines_przeszkody_gora                                      
+        przeszkoda_dol = przeszkoda.y                                                                                        
+ 
+        if (gracz_lewo < przeszkoda_prawo and                                            #test nakładania się prostokątów:
+            gracz_prawo > przeszkoda_lewo and                                            #gracz i przeszkoda zachodzą na siebie w poziomie
+            gracz_gora < przeszkoda_dol and                                              #zachodzą na siebie w pionie
+            gracz_dol > przeszkoda_gora): 
+            return True                                                                  #jeśli wszystkie warunki spełnione - kolizja
+        return False                                                                     #w przeciwnym razie brak kolizji
