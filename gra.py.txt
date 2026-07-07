@@ -10,7 +10,7 @@ screen = pygame.display.set_mode((szerokosc_okna, wysokosc_okna))
 pygame.display.set_caption("Gra z przeszkodami")
 clock = pygame.time.Clock()                                                                #zegar do kontrolowania liczby klatek na sekundę
  
-# Czcionki
+#czcionki
 font_hud = pygame.font.Font(None, 40)
 font_komunikat = pygame.font.Font(None, 70)
  
