@@ -8,9 +8,9 @@ szerokosc_okna = 800
 wysokosc_okna = 400
 screen = pygame.display.set_mode((szerokosc_okna, wysokosc_okna))
 pygame.display.set_caption("Gra z przeszkodami")
-clock = pygame.time.Clock()                                                                #zegar do kontrolowania liczby klatek na sekundę (płynność gry)
+clock = pygame.time.Clock()                                                                #zegar do kontrolowania liczby klatek na sekundę
  
-#czcionki
+# Czcionki
 font_hud = pygame.font.Font(None, 40)
 font_komunikat = pygame.font.Font(None, 70)
  
@@ -100,3 +100,75 @@ class Kwadrat:
             gracz_dol > przeszkoda_gora): 
             return True                                                                  #jeśli wszystkie warunki spełnione - kolizja
         return False                                                                     #w przeciwnym razie brak kolizji
+
+class Trojkat:                                                                           #zielony trójkąt na podłodze
+    def __init__(self, start_x): 
+        self.x = start_x                                                                 # pozycja pozioma (startuje przy prawej krawędzi ekranu)
+        self.y = 300.0                                                                   # pozycja pionowa - stoi na podłodze
+        self.szerokosc = 40.0                                                            # szerokość podstawy trójkąta
+        self.wysokosc = 50.0                                                             # wysokość trójkąta
+
+    def aktualizuj(self, predkosc): 
+        self.x -= predkosc                                                               # przesuń trójkąt w lewo o konkretną prędkość (symulacja ruchu tła)
+
+    def rysuj(self, ekran): 
+        punkty = [
+            (self.x, self.y),                                                           # lewy-dolny róg
+            (self.x + self.szerokosc, self.y),                                          # prawy-dolny róg
+            (self.x + self.szerokosc / 2.0, self.y - self.wysokosc)                     # górny czubek (środek, podniesiony o wysokość)
+        ]
+        pygame.draw.polygon(ekran, (50, 200, 50), punkty)                               # narysuj trójkąt w kolorze zielonym
+
+class WysokiTrojkat:                                                                    # czerwony, wyższy trójkąt
+    def __init__(self, start_x):
+        self.x = start_x                                                                # pozycja pozioma startowa
+        self.y = 300.0                                                                  # stoi na podłodze
+        self.szerokosc = 50.0                                                           # szerokość podstawy
+        self.wysokosc = 95.0                                                            # wysokość 
+
+    def aktualizuj(self, predkosc):
+        self.x -= predkosc                                                              # ruch w lewo
+
+    def rysuj(self, ekran):
+        punkty = [
+            (self.x, self.y),                                                           # lewy-dolny róg
+            (self.x + self.szerokosc, self.y),                                          # prawy-dolny róg
+            (self.x + self.szerokosc / 2.0, self.y - self.wysokosc)                     # górny czubek
+        ]
+        pygame.draw.polygon(ekran, (200, 50, 50), punkty)                               # rysuj w kolorze czerwonym
+
+class LatajacyTrojkat:                                                                  # trójkąt wiszącego w powietrzu, obracający się
+    def __init__(self, start_x):
+        self.x = start_x                                                                # pozycja pozioma startowa
+        self.y = 220.0                                                                  # pozycja pionowa zawieszona w powietrzu
+        self.szerokosc = 50.0                                                           # szerokość trójkąta
+        self.wysokosc = 50.0                                                            # wysokość trójkąta
+        self.kat = 0.0                                                                  # aktualny kąt obrotu 
+
+    def aktualizuj(self, predkosc):
+        self.x -= predkosc                                                              # ruch w lewo
+        self.kat += 8.0                                                                 # co klatkę obróć trójkąt o 8°
+
+    def rysuj(self, ekran):
+        surf = pygame.Surface((self.szerokosc, self.wysokosc), pygame.SRCALPHA)                            # osobna przezroczysta powierzchnia (potrzebna do obrotu)
+        punkty = [(0, self.wysokosc), (self.szerokosc, self.wysokosc), (self.szerokosc / 2, 0)]            # punkty trójkąta względem podłoża (0,0)
+        pygame.draw.polygon(surf, (200, 50, 200), punkty)                                                  # narysowany trójkąt na tej powierzchni w kolorze fioletowym
+        
+        rotated_surf = pygame.transform.rotate(surf, -self.kat)                                            # obrót powierzchni o aktualny kąt
+        rect = rotated_surf.get_rect(center=(self.x + self.szerokosc / 2.0, self.y - self.wysokosc / 2.0)) # ustawia obrócony trójkąt na właściwej pozycji
+        ekran.blit(rotated_surf, rect)                                                                     # wyświetla obrócony trójkąt na ekranie
+
+class Schody:                                                                          # klasa schodów, która podnosi poziom podłogi
+    def __init__(self, start_x):
+        self.x = start_x                                                               # pozycja pozioma startowa
+        self.y = 300.0                                                                 # pozycja pionowa
+        self.szerokosc = 90.0                                                          # szerokość schodów 
+        self.wysokosc = 90.0                                                           # wysokość najwyższego stopnia
+
+    def aktualizuj(self, predkosc):
+        self.x -= predkosc                                                             # ruch w lewo
+
+    def rysuj(self, ekran):
+        pygame.draw.rect(ekran, (255, 140, 0), (self.x, self.y - 30, 30, 30))          # 1 stopień 
+        pygame.draw.rect(ekran, (255, 140, 0), (self.x + 30, self.y - 60, 30, 60))     # 2 stopień
+        pygame.draw.rect(ekran, (255, 140, 0), (self.x + 60, self.y - 90, 30, 90))     # 3 stopień
