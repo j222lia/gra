@@ -50,19 +50,19 @@ class Kwadrat:
         if self.licznik_skokow > 0:                                                   
             self.kat_obrotu += self.predkosc_obrotu                                       #obracaj kwadrat o wyliczoną prędkość obrotu
  
-        # 1. SCHODY PONOSZĄCE POZIOM PODŁOGI
+        #SCHODY PONOSZĄCE POZIOM PODŁOGI
         docelowa_podloga = 300.0                                                        
         srodek_gracza = self.x + self.bok / 2.0                                           #pozioma pozycja środka gracza (do sprawdzenia na którym stopniu schodów stoi)
  
         for p in wszystkie_platformy:                                                     
-            if srodek_gracza > p.x and srodek_gracza <= p.x + 30:                         #jeśli gracz jest nad 1 stopniem
+            if srodek_gracza > p.x and srodek_gracza <= p.x + 30:                         #jeśli gracz jest nad 1 stopniem (każdy stopień ma 30px)
                 docelowa_podloga = 270.0                                                  #podnieś podłogę na wysokość 1 stopnia
             elif srodek_gracza > p.x + 30 and srodek_gracza <= p.x + 60:                  
                 docelowa_podloga = 240.0                                                          
             elif srodek_gracza > p.x + 60 and srodek_gracza <= p.x + 90:                          
                 docelowa_podloga = 210.0                                                             
  
-        # 2. BEZPIECZNE LĄDOWANIE
+        #BEZPIECZNE LĄDOWANIE
         if self.y + self.bok >= docelowa_podloga and self.predkosc_y >= 0:                #jeśli dół gracza dotarł do podłogi i gracz nie leci w górę
             self.y = docelowa_podloga - self.bok                                          #ustaw gracza dokładnie na podłodze
             self.predkosc_y = 0.0                                                         #zatrzymanie spadania
@@ -72,7 +72,6 @@ class Kwadrat:
     def rysuj(self, ekran):                                                               #tworzymy powierzchnię kwadratu, żeby móc go obrócić
         surf = pygame.Surface((self.bok, self.bok), pygame.SRCALPHA)                           
         surf.fill((255, 50, 50))                                                                                
-        # Obrót (w Pygame minus kręci w prawo)
         rotated_surf = pygame.transform.rotate(surf, -self.kat_obrotu)                   #obróć powierzchnię o aktualny kąt (minus, by kręcić zgodnie z ruchem wskazówek zegara)
         rect = rotated_surf.get_rect(center=(self.x + self.bok / 2.0, self.y + self.bok / 2.0))     #środek obróconej figury pokrywa się ze środkiem gracza
         ekran.blit(rotated_surf, rect)                                                              #narysuj obróconą powierzchnię na ekranie
