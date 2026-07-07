@@ -101,7 +101,6 @@ class Kwadrat:
             return True                                                                  #jeśli wszystkie warunki spełnione - kolizja
         return False                                                                     #w przeciwnym razie brak kolizji
 
-class Trojkat:                                                                           #zielony trójkąt na podłodze
     def __init__(self, start_x): 
         self.x = start_x                                                                 # pozycja pozioma (startuje przy prawej krawędzi ekranu)
         self.y = 300.0                                                                   # pozycja pionowa - stoi na podłodze
