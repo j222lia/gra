@@ -18,17 +18,16 @@ font_komunikat = pygame.font.Font(None, 70)
 class Kwadrat:
     def __init__(self): 
         self.bok = 40.0
-        self.x = 100.0  #pozycja pozioma gracza (stała)
-        self.y = 300.0 - self.bok  #pozycja pionowa
+        self.x = 100.0                                                                     #pozycja pozioma gracza (stała)
+        self.y = 300.0 - self.bok                                                          
         self.predkosc_y = 0.0
-        self.grawitacja = 0.6                                                              #przyspieszenie grawitacyjne - dodawane co klatkę do predkosc_y
-        self.sila_skoku = -10.0                                                            #prędkość nadawana przy skoku (ujemna bo w pygame "w górę" = mniejsze y)
+        self.grawitacja = 0.6                                                              #przyspieszenie grawitacyjne co klatkę
+        self.sila_skoku = -10.0                                                            #prędkość nadawana przy skoku (ujemna bo w pygame minus oznacza skok w górę)
         self.licznik_skokow = 0                                                            #ile razy gracz skoczył od ostatniego lądowania (pozwala na podwójny skok)
         self.kat_obrotu = 0.0
         self.predkosc_obrotu = 0.0
  
-    def _oblicz_czas_lotu(self): 
-        #Symuluje lot gracza, żeby policzyć ile klatek zajmie powrót na podłogę
+    def _oblicz_czas_lotu(self):                                                           #symuluje lot gracza, żeby policzyć ile klatek zajmie powrót na podłogę
         y = self.y                                                                         #kopia aktualnej pozycji y do symulacji
         v = self.predkosc_y                                                                #kopia aktualnej prędkości do symulacji
         n = 0                                                                              #licznik symulowanych klatek
@@ -42,20 +41,20 @@ class Kwadrat:
             self.predkosc_y = self.sila_skoku                                    
             self.licznik_skokow += 1                                             
             klatki_do_ladowania = self._oblicz_czas_lotu()                                 #policz ile klatek zajmie lądowanie
-            self.predkosc_obrotu = 360.0 / klatki_do_ladowania                           
+            self.predkosc_obrotu = 360.0 / klatki_do_ladowania                             #dzielenie przez czas lotu aby wyliczyć prędkość, która pozwoli wylądować na płasko
  
-    def aktualizuj(self, wszystkie_platformy): 
+    def aktualizuj(self, wszystkie_platformy):                                             #dodawanie grawitacji co klatkę, żeby gracz powoli zaczął spadać
         self.predkosc_y += self.grawitacja                                         
         self.y += self.predkosc_y                                                    
  
         if self.licznik_skokow > 0:                                                   
             self.kat_obrotu += self.predkosc_obrotu                                       #obracaj kwadrat o wyliczoną prędkość obrotu
  
-        # 1. Bezpieczne schody - po prostu podnoszą poziom podłogi
+        # 1. SCHODY PONOSZĄCE POZIOM PODŁOGI
         docelowa_podloga = 300.0                                                        
         srodek_gracza = self.x + self.bok / 2.0                                           #pozioma pozycja środka gracza (do sprawdzenia na którym stopniu schodów stoi)
  
-        for p in wszystkie_platformy:                                                     #sprawdź każdą platformę schodków na ekranie
+        for p in wszystkie_platformy:                                                     
             if srodek_gracza > p.x and srodek_gracza <= p.x + 30:                         #jeśli gracz jest nad 1 stopniem
                 docelowa_podloga = 270.0                                                  #podnieś podłogę na wysokość 1 stopnia
             elif srodek_gracza > p.x + 30 and srodek_gracza <= p.x + 60:                  
@@ -63,41 +62,40 @@ class Kwadrat:
             elif srodek_gracza > p.x + 60 and srodek_gracza <= p.x + 90:                          
                 docelowa_podloga = 210.0                                                             
  
-        # 2. Bezpieczne lądowanie
+        # 2. BEZPIECZNE LĄDOWANIE
         if self.y + self.bok >= docelowa_podloga and self.predkosc_y >= 0:                #jeśli dół gracza dotarł do podłogi i gracz nie leci w górę
             self.y = docelowa_podloga - self.bok                                          #ustaw gracza dokładnie na podłodze
             self.predkosc_y = 0.0                                                         #zatrzymanie spadania
             self.licznik_skokow = 0                                                                        
-            self.kat_obrotu = round(self.kat_obrotu / 90.0) * 90.0                        #zaokrąglij kąt obrotu do najbliższej wielokrotności 90°, by ładnie "stanął"
+            self.kat_obrotu = round(self.kat_obrotu / 90.0) * 90.0                        #zaokrąglij kąt obrotu do najbliższej wielokrotności 90°, by stał równo na podłodze
  
-    def rysuj(self, ekran): 
-        # Tworzymy "powierzchnię" kwadratu, żeby móc go obrócić
+    def rysuj(self, ekran):                                                               #tworzymy powierzchnię kwadratu, żeby móc go obrócić
         surf = pygame.Surface((self.bok, self.bok), pygame.SRCALPHA)                           
         surf.fill((255, 50, 50))                                                                                
         # Obrót (w Pygame minus kręci w prawo)
         rotated_surf = pygame.transform.rotate(surf, -self.kat_obrotu)                   #obróć powierzchnię o aktualny kąt (minus, by kręcić zgodnie z ruchem wskazówek zegara)
         rect = rotated_surf.get_rect(center=(self.x + self.bok / 2.0, self.y + self.bok / 2.0))     #środek obróconej figury pokrywa się ze środkiem gracza
-        ekran.blit(rotated_surf, rect)                                                              # narysuj (wklej) obróconą powierzchnię na ekranie
+        ekran.blit(rotated_surf, rect)                                                              #narysuj obróconą powierzchnię na ekranie
  
     def sprawdz_kolizje(self, przeszkoda): 
-        margines_gracza = 6                                                              #zmniejszenie hitboxa gracza o 6px z każdej strony (mniej "wybaczające" starcia)
-        margines_przeszkody_bok = 12                                                     #zmniejszenie hitboxa przeszkody w bokach o 12px
-        margines_przeszkody_gora = 15                                                    #zmniejszenie hitboxa przeszkody od góry o 15px
+        margines_gracza = 6                                                              #zmniejszenie strefy zderzenia gracza o 6px z każdej strony 
+        margines_przeszkody_bok = 12                                                     #zmniejszenie strefy zderzenia przeszkody w bokach o 12px
+        margines_przeszkody_gora = 15                                                    #zmniejszenie strefy zderzenia przeszkody od góry o 15px
  
-        gracz_lewo = self.x + margines_gracza                                            #lewa krawędź hitboxa gracza
+        gracz_lewo = self.x + margines_gracza                                            #lewa krawędź strefy zderzenia gracza
         gracz_prawo = self.x + self.bok - margines_gracza                                                               
         gracz_gora = self.y + margines_gracza                                                                            
         gracz_dol = self.y + self.bok - margines_gracza                                                                  
  
-        przeszkoda_lewo = przeszkoda.x + margines_przeszkody_bok                         #lewa krawędź hitboxa przeszkody
+        przeszkoda_lewo = przeszkoda.x + margines_przeszkody_bok                         #lewa krawędź strefy zderzenia przeszkody
         przeszkoda_prawo = przeszkoda.x + przeszkoda.szerokosc - margines_przeszkody_bok                                    
         przeszkoda_gora = przeszkoda.y - przeszkoda.wysokosc + margines_przeszkody_gora                                      
         przeszkoda_dol = przeszkoda.y                                                                                        
  
-        if (gracz_lewo < przeszkoda_prawo and                                            #test nakładania się prostokątów:
-            gracz_prawo > przeszkoda_lewo and                                            #gracz i przeszkoda zachodzą na siebie w poziomie
-            gracz_gora < przeszkoda_dol and                                              #zachodzą na siebie w pionie
-            gracz_dol > przeszkoda_gora): 
+        if (gracz_lewo < przeszkoda_prawo and                                            #test nakładania się gracza i przeszkody na siebie w pionie i poziomie
+            gracz_prawo > przeszkoda_lewo and                                            
+            gracz_gora < przeszkoda_dol and                                              
+            gracz_dol > przeszkoda_gora):                                                
             return True                                                                  #jeśli wszystkie warunki spełnione - kolizja
         return False                                                                     #w przeciwnym razie brak kolizji
 
