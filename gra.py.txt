@@ -2,7 +2,7 @@ import pygame
 import random
 import math
  
-# --- INICJALIZACJA PYGAME ---
+#INICJALIZACJA PYGAME
 pygame.init()
 szerokosc_okna = 800
 wysokosc_okna = 400
@@ -14,7 +14,7 @@ clock = pygame.time.Clock()                                                     
 font_hud = pygame.font.Font(None, 40)
 font_komunikat = pygame.font.Font(None, 70)
  
-# --- KLASY OBIEKTÓW --- 
+#KLASY OBIEKTÓW
 class Kwadrat:
     def __init__(self): 
         self.bok = 40.0
