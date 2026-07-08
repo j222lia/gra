@@ -2,7 +2,7 @@ import pygame
 import random
 import math
  
-#INICJALIZACJA PYGAME
+# --- INICJALIZACJA PYGAME ---
 pygame.init()
 szerokosc_okna = 800
 wysokosc_okna = 400
@@ -14,7 +14,7 @@ clock = pygame.time.Clock()                                                     
 font_hud = pygame.font.Font(None, 40)
 font_komunikat = pygame.font.Font(None, 70)
  
-#KLASY OBIEKTÓW
+# --- KLASY OBIEKTÓW ---
 class Kwadrat:
     def __init__(self): 
         self.bok = 40.0
@@ -36,6 +36,7 @@ class Kwadrat:
             y += v                                                                         #symulowana pozycja zmienia się o prędkość
             n += 1                                                                         #kolejna klatka
         return max(n, 1)                                                                   #zwraca liczbę klatek lotu 
+
     def skocz(self): 
         if self.licznik_skokow < 2:                                            
             self.predkosc_y = self.sila_skoku                                    
@@ -50,9 +51,9 @@ class Kwadrat:
         if self.licznik_skokow > 0:                                                   
             self.kat_obrotu += self.predkosc_obrotu                                       #obracaj kwadrat o wyliczoną prędkość obrotu
  
-        #SCHODY PONOSZĄCE POZIOM PODŁOGI
+        # 1. Schody podnoszące poziom podłogi
         docelowa_podloga = 300.0                                                        
-        srodek_gracza = self.x + self.bok / 2.0                                           #pozioma pozycja środka gracza (do sprawdzenia na którym stopniu schodów stoi)
+        srodek_gracza = self.x + self.bok / 2.0                                           #pozioma pozycja środka gracza (by wchodzenie po schodach wyglądało normalnie)
  
         for p in wszystkie_platformy:                                                     
             if srodek_gracza > p.x and srodek_gracza <= p.x + 30:                         #jeśli gracz jest nad 1 stopniem (każdy stopień ma 30px)
@@ -62,7 +63,7 @@ class Kwadrat:
             elif srodek_gracza > p.x + 60 and srodek_gracza <= p.x + 90:                          
                 docelowa_podloga = 210.0                                                             
  
-        #BEZPIECZNE LĄDOWANIE
+        # 2. Bezpieczne lądowanie
         if self.y + self.bok >= docelowa_podloga and self.predkosc_y >= 0:                #jeśli dół gracza dotarł do podłogi i gracz nie leci w górę
             self.y = docelowa_podloga - self.bok                                          #ustaw gracza dokładnie na podłodze
             self.predkosc_y = 0.0                                                         #zatrzymanie spadania
