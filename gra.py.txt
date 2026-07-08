@@ -169,3 +169,109 @@ class Schody:                                                                   
         pygame.draw.rect(ekran, (255, 140, 0), (self.x, self.y - 30, 30, 30))          # 1 stopień 
         pygame.draw.rect(ekran, (255, 140, 0), (self.x + 30, self.y - 60, 30, 60))     # 2 stopień
         pygame.draw.rect(ekran, (255, 140, 0), (self.x + 60, self.y - 90, 30, 90))     # 3 stopień
+
+# --- ZMIENNE STANU GRY ---
+gracz = Kwadrat()                                                                      # tworzy obiekt gracza
+przeszkody = []                                                                        # lista trójkątów - dają punkty po ominięciu
+platformy = []                                                                         # lista platform - nie dają punktów
+punkty = 0                                                                             # licznik zdobytych punktów
+stan_gry = "TRWA"                                                                      # aktualny stan gry: "trwa", "koniec_wygrana" lub "koniec_przegrana"
+predkosc_przeszkod = 5.0                                                               # prędkość poruszania się przeszkód/schodów
+kolor_tla = (180, 180, 180)                                                            # początkowy kolor tła (szary)
+
+# --- GŁÓWNA PĘTLA GRY --- 
+running = True                                                                         # gra działa, dopóki wartość jest True
+while running:
+    # 1. Obsługa zdarzeń i klawiszy
+    for event in pygame.event.get():                                                  # sprwdza zdarzenia w grze (klawisze, zamknięcie okna itd.)
+        if event.type == pygame.QUIT:                                                 # jeśli użytkownik zamknął okno (kliknął X)
+            running = False                                                           # zakończ główną pętlę gry
+        if event.type == pygame.KEYDOWN:                                              # jeśli wciśnięto jakiś klawisz
+            if event.key == pygame.K_SPACE and stan_gry == "TRWA":                    # jeśli to spacja i gra wciąż trwa
+                gracz.skocz()                                                         # wykonuje skok
+                
+    # 2. Zmiana poziomu trudności
+    if punkty >= 30:                                                                  # jeśli gracz zdobył 30+ punktów
+        stan_gry = "KONIEC_WYGRANA"                                                   # gra kończy się wygraną
+    elif punkty >= 20:                                                                # od 20 do 29 punktów
+        kolor_tla = (138, 43, 226)                                                    # fioletowe tło
+        predkosc_przeszkod = 10.0                                                     # najwyższa prędkość przeszkód
+    elif punkty >= 10:                                                                # od 10 do 19 punktów
+        kolor_tla = (70, 130, 180)                                                    # niebieskie tło
+        predkosc_przeszkod = 7.5                                                      # średnia prędkość przeszkód
+    else:                                                                             # poniżej 10 punktów
+        kolor_tla = (180, 180, 180)                                                   # domyślne szare tło
+        predkosc_przeszkod = 5.0                                                      # podstawowa prędkość
+         
+    # 3. Rysowanie tła i podłogi
+    screen.fill(kolor_tla)                                                           # wypełnia ekran kolorem tła
+    pygame.draw.line(screen, (0, 0, 0), (0, 300), (szerokosc_okna, 300), 3)          # narysuj czarną linię na y=300 (podłoga)
+     
+    # 4. Aktualizacja gry
+    if stan_gry == "TRWA":                                                           # działa tylko gdy gra trwa
+        gracz.aktualizuj(platformy)                                                  # aktualizuje pozycje gracza
+         
+        ostatni_x = 0                                                                # pozycja ostatniego obiektu
+        if len(przeszkody) > 0:                                                      # jeśli są przeszkody
+            ostatni_x = max(ostatni_x, przeszkody[-1].x)                             # pobiera ich pozycje
+        if len(platformy) > 0:                                                       # jeśli są platformy
+            ostatni_x = max(ostatni_x, platformy[-1].x)                              # pobiera ich pozycje
+             
+        # Losowanie przeszkód
+        if ostatni_x == 0 or ostatni_x < szerokosc_okna - 450:                            # jeśli nie ma jeszcze obiektów, albo jest dość miejsca (min. 450px odstępu)
+            los = random.randint(1, 100)                                                  # wylosuj liczbę od 1 do 100, decydującą co się pojawi
+            if punkty >= 20:                                                              # przy 20+ punktach dostępne są wszystkie typy przeszkód
+                if los < 30: przeszkody.append(LatajacyTrojkat(szerokosc_okna))           # 29% szans: latający trójkąt
+                elif los < 50: przeszkody.append(WysokiTrojkat(szerokosc_okna))           # 20% szans: wysoki trójkąt
+                elif los < 70: platformy.append(Schody(szerokosc_okna))                   # 20% szans: schody
+                else: przeszkody.append(Trojkat(szerokosc_okna))                          # 30% szans: zwykły trójkąt
+            elif punkty >= 10:                                                            # przy 10-19 punktach - bez latającego trójkąta
+                if los < 40: przeszkody.append(WysokiTrojkat(szerokosc_okna))             # 39% szans: wysoki trójkąt
+                elif los < 70: platformy.append(Schody(szerokosc_okna))                   # 30% szans: schody
+                else: przeszkody.append(Trojkat(szerokosc_okna))                          # 30% szans: zwykły trójkąt
+            else:                                                                         # poniżej 10 punktów - tylko najłatwiejsze przeszkody
+                if los < 30: platformy.append(Schody(szerokosc_okna))                     # 29% szans: schody
+                else: przeszkody.append(Trojkat(szerokosc_okna))                          # 70% szans: zwykły trójkąt
+                 
+        # Platformy znikają, ALE NIE DAJĄ PUNKTÓW
+        for i in range(len(platformy) - 1, -1, -1):                                       # iteracja od końca listy (bezpieczne usuwanie podczas iteracji)
+            p = platformy[i]                                                              # pobierz kolejną platformę
+            p.aktualizuj(predkosc_przeszkod)                                              # przesuń ją w lewo
+            if p.x + p.szerokosc < 0:                                                     # jeśli całkowicie zniknęła z lewej strony ekranu
+                platformy.pop(i)                                                          # usuń ją z listy (bez dodawania punktów)
+
+        # Trójkąty znikają i DAJĄ PUNKTY
+        for i in range(len(przeszkody) - 1, -1, -1):                                      # iteracja od końca listy przeszkód
+            p = przeszkody[i]                                                             # pobierz kolejną przeszkodę
+            p.aktualizuj(predkosc_przeszkod)                                              # przesuń ją w lewo
+            if p.x + p.szerokosc < 0:                                                     # jeśli zniknęła z ekranu (gracz ją ominął)
+                przeszkody.pop(i)                                                         # usuń ją z listy
+                punkty += 1                                                               # i dodaj punkt za jej ominięcie
+            elif gracz.sprawdz_kolizje(p):                                                # w przeciwnym razie sprawdź, czy gracz w nią uderzył
+                stan_gry = "KONIEC_PRZEGRANA"                                             # jeśli tak - gra kończy się przegraną
+                 
+    # 5. Wyświetlanie obiektów na ekranie
+    gracz.rysuj(screen)                                                                   # narysuj gracza
+    for p in platformy:                                                                   # dla każdej platformy (schody)
+        p.rysuj(screen)                                                                   # narysuj ją
+    for p in przeszkody:                                                                  # dla każdej przeszkody (trójkąt)
+        p.rysuj(screen)                                                                   # narysuj ją
+         
+    # 6. Teksty (punkty i koniec gry)
+    tekst_punkty = font_hud.render("Punkty: " + str(punkty), True, (255, 255, 255))                       # tworzy napis z punktami 
+    screen.blit(tekst_punkty, (10, 10))                                                                   # narysuj go w lewym górnym rogu ekranu
+     
+    if stan_gry == "KONIEC_WYGRANA":                                                                      # jeśli gra zakończyła się wygraną
+        tekst_wygrana = font_komunikat.render("GRATULACJE!", True, (255, 215, 0))                         # przygotuj złoty napis "GRATULACJE!"
+        rect_wygrana = tekst_wygrana.get_rect(center=(szerokosc_okna / 2, wysokosc_okna / 2 - 50))        # wyśrodkuj go 
+        screen.blit(tekst_wygrana, rect_wygrana)                                                          # narysuj napis na ekranie
+    elif stan_gry == "KONIEC_PRZEGRANA":                                                                  # jeśli gra zakończyła się przegraną
+        tekst_przegrana = font_komunikat.render("KONIEC GRY!", True, (255, 0, 0))                         # przygotuj czerwony napis "KONIEC GRY!"
+        rect_przegrana = tekst_przegrana.get_rect(center=(szerokosc_okna / 2, wysokosc_okna / 2 - 50))    # wyśrodkuj go
+        screen.blit(tekst_przegrana, rect_przegrana)                                                      # narysuj napis na ekranie
+
+    # Odświeżenie okna i kontrola klatek (60 FPS)
+    pygame.display.flip()                                                                  # pokaż na ekranie to, co zostało narysowane w tej klatce
+    clock.tick(60)                                                                         # utrzymuj 60 FPS
+
+pygame.quit()                                                                              # po zakończeniu pętli zamyka pygame
